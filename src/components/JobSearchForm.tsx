@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompanyInfo {
   hrEmail: string;
@@ -30,29 +31,45 @@ const JobSearchForm = () => {
 
     setLoading(true);
     try {
-      // For now, using mock data. In a real application, this would be an API call
-      const mockResponse = {
-        hrEmail: `hr@${companyName.toLowerCase().replace(/\s+/g, '')}.com`,
-        linkedinUrl: `https://www.linkedin.com/company/${companyName.toLowerCase().replace(/\s+/g, '-')}`,
-        emailTemplate: `Dear Hiring Manager at ${companyName},
+      // Fetch HR contact from Supabase
+      const { data, error } = await supabase
+        .from('hr_contacts')
+        .select('*')
+        .ilike('company', `%${companyName}%`)
+        .single();
 
-I hope this email finds you well. I came across ${companyName}'s innovative work in [industry/field] and was immediately drawn to your company's mission to [company mission/values].
+      if (error) throw error;
 
-With [X] years of experience in [relevant field] and a proven track record of [key achievement], I believe I could be a valuable addition to your team.
+      if (data) {
+        const response = {
+          hrEmail: data.email,
+          linkedinUrl: `https://www.linkedin.com/company/${companyName.toLowerCase().replace(/\s+/g, '-')}`,
+          emailTemplate: `Dear ${data.name},
 
-I would welcome the opportunity to discuss how my background aligns with your needs and learn more about current opportunities at ${companyName}.
+I hope this email finds you well. I came across ${data.company}'s innovative work and was immediately drawn to your company's mission.
+
+With my experience in [relevant field] and a proven track record of [key achievement], I believe I could be a valuable addition to your team.
+
+I would welcome the opportunity to discuss how my background aligns with your needs and learn more about current opportunities at ${data.company}.
 
 Thank you for considering my interest. I look forward to your response.
 
 Best regards,
 [Your name]`
-      };
+        };
 
-      setCompanyInfo(mockResponse);
-      toast({
-        title: "Success",
-        description: "Company information retrieved successfully",
-      });
+        setCompanyInfo(response);
+        toast({
+          title: "Success",
+          description: "Company information retrieved successfully",
+        });
+      } else {
+        toast({
+          title: "Not Found",
+          description: "No HR contact found for this company",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
