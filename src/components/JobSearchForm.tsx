@@ -5,6 +5,9 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from '@/integrations/supabase/types';
+
+type HrContact = Database['public']['Tables']['hr_contacts']['Row'];
 
 interface CompanyInfo {
   hrEmail: string;
@@ -31,17 +34,16 @@ const JobSearchForm = () => {
 
     setLoading(true);
     try {
-      // Fetch HR contact from Supabase
       const { data, error } = await supabase
         .from('hr_contacts')
         .select('*')
         .ilike('company', `%${companyName}%`)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
       if (data) {
-        const response = {
+        const response: CompanyInfo = {
           hrEmail: data.email,
           linkedinUrl: `https://www.linkedin.com/company/${companyName.toLowerCase().replace(/\s+/g, '-')}`,
           emailTemplate: `Dear ${data.name},
@@ -71,6 +73,7 @@ Best regards,
         });
       }
     } catch (error) {
+      console.error('Error fetching company info:', error);
       toast({
         title: "Error",
         description: "Failed to retrieve company information",
