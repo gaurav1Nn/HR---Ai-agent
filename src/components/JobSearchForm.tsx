@@ -34,25 +34,28 @@ const JobSearchForm = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: hrContact, error } = await supabase
         .from('hr_contacts')
-        .select('*')
+        .select()
         .ilike('company', `%${companyName}%`)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
-      if (data) {
+      if (hrContact) {
         const response: CompanyInfo = {
-          hrEmail: data.email,
+          hrEmail: hrContact.email,
           linkedinUrl: `https://www.linkedin.com/company/${companyName.toLowerCase().replace(/\s+/g, '-')}`,
-          emailTemplate: `Dear ${data.name},
+          emailTemplate: `Dear ${hrContact.name},
 
-I hope this email finds you well. I came across ${data.company}'s innovative work and was immediately drawn to your company's mission.
+I hope this email finds you well. I came across ${hrContact.company}'s innovative work and was immediately drawn to your company's mission.
 
 With my experience in [relevant field] and a proven track record of [key achievement], I believe I could be a valuable addition to your team.
 
-I would welcome the opportunity to discuss how my background aligns with your needs and learn more about current opportunities at ${data.company}.
+I would welcome the opportunity to discuss how my background aligns with your needs and learn more about current opportunities at ${hrContact.company}.
 
 Thank you for considering my interest. I look forward to your response.
 
@@ -71,6 +74,7 @@ Best regards,
           description: "No HR contact found for this company",
           variant: "destructive",
         });
+        setCompanyInfo(null);
       }
     } catch (error) {
       console.error('Error fetching company info:', error);
